@@ -34,4 +34,4 @@ HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
 ENV PORT=8002
 EXPOSE 8002
 
-CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT} --workers 1"]
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${8003} --workers 1"]
