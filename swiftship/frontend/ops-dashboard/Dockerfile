@@ -6,7 +6,7 @@ COPY ./frontend/ops-dashboard/package.json ./
 RUN npm install --legacy-peer-deps
 
 COPY ./frontend/ops-dashboard/. .
-RUN npm run build
+RUN NODE_OPTIONS=--max_old_space_size=1536 npm run build
 
 FROM nginx:alpine AS final
 

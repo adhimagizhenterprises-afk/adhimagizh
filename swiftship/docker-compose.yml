@@ -67,9 +67,7 @@ services:
 
   # ─── Backend Microservices ────────────────────────────────────────
   user-auth-service:
-    build:
-      context: .
-      dockerfile: ./services/user-auth-service/Dockerfile
+    image: ghcr.io/adhimagizhenterprises-afk/user-auth-service:latest
     ports: ["8007:8007"]
     environment:
       DATABASE_URL: postgresql+asyncpg://swiftship:swiftship_secret@postgres/auth_db
@@ -81,9 +79,7 @@ services:
     depends_on: [postgres, redis]
 
   customer-booking-service:
-    build:
-      context: .
-      dockerfile: ./services/customer-booking-service/Dockerfile
+    image: ghcr.io/adhimagizhenterprises-afk/customer-tracking-service:latest
     ports: ["8001:8001"]
     environment:
       DATABASE_URL: postgresql+asyncpg://swiftship:swiftship_secret@postgres/booking_db
@@ -96,9 +92,7 @@ services:
     depends_on: [postgres, redis, kafka]
 
   customer-tracking-service:
-    build:
-      context: .
-      dockerfile: ./services/customer-tracking-service/Dockerfile
+    image: ghcr.io/adhimagizhenterprises-afk/customer-tracking-service:latest
     ports: ["8002:8002"]
     environment:
       DATABASE_URL: postgresql+asyncpg://swiftship:swiftship_secret@postgres/tracking_db
@@ -109,9 +103,7 @@ services:
     depends_on: [postgres, redis, kafka, elasticsearch]
 
   operations-service:
-    build:
-      context: .
-      dockerfile: ./services/operations-service/Dockerfile
+    image: ghcr.io/adhimagizhenterprises-afk/operations-service:latest
     ports: ["8003:8003"]
     environment:
       DATABASE_URL: postgresql+asyncpg://swiftship:swiftship_secret@postgres/operations_db
@@ -121,9 +113,7 @@ services:
     depends_on: [postgres, redis, kafka]
 
   agent-service:
-    build:
-      context: .
-      dockerfile: ./services/agent-service/Dockerfile
+    image: ghcr.io/adhimagizhenterprises-afk/agent-service:latest
     ports: ["8004:8004"]
     environment:
       DATABASE_URL: postgresql+asyncpg://swiftship:swiftship_secret@postgres/agent_db
@@ -136,9 +126,7 @@ services:
     depends_on: [postgres, redis, kafka, minio]
 
   notification-service:
-    build:
-      context: .
-      dockerfile: ./services/notification-service/Dockerfile
+    image: ghcr.io/adhimagizhenterprises-afk/notification-service:latest
     ports: ["8005:8005"]
     environment:
       DATABASE_URL: postgresql+asyncpg://swiftship:swiftship_secret@postgres/notification_db
@@ -154,9 +142,7 @@ services:
     depends_on: [postgres, kafka]
 
   payment-service:
-    build:
-      context: .
-      dockerfile: ./services/payment-service/Dockerfile
+    image: ghcr.io/adhimagizhenterprises-afk/payment-service:latest
     ports: ["8006:8006"]
     environment:
       DATABASE_URL: postgresql+asyncpg://swiftship:swiftship_secret@postgres/payment_db
@@ -169,17 +155,13 @@ services:
 
   # ─── Frontend Apps ────────────────────────────────────────────────
   customer-portal:
-    build:
-      context: .
-      dockerfile: ./frontend/customer-portal/Dockerfile
+    image: ghcr.io/adhimagizhenterprises-afk/customer-portal:latest
     ports: ["3000:80"]
     environment:
       REACT_APP_API_BASE_URL: http://localhost:8000/api/v1
 
   ops-dashboard:
-    build:
-      context: .
-      dockerfile: ./frontend/ops-dashboard/Dockerfile
+    image: ghcr.io/adhimagizhenterprises-afk/ops-dashboard:latest
     ports: ["3001:80"]
     environment:
       REACT_APP_API_BASE_URL: http://localhost:8000/api/v1
