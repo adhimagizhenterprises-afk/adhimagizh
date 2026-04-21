@@ -1,0 +1,25 @@
+# Node
+**/node_modules
+**/build
+**/.npm
+
+# Python
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/.pytest_cache
+**/*.egg-info
+**/dist
+**/.venv
+**/venv
+
+# Git / IDE
+.git
+.gitignore
+**/.env
+**/.env.*
+
+# Frontend built output (not needed during build — nginx copies from builder stage)
+frontend/customer-portal/build
+frontend/ops-dashboard/build

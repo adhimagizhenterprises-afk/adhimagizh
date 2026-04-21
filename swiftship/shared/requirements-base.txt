@@ -1,0 +1,59 @@
+# Core FastAPI
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+python-multipart==0.0.7
+
+# Database
+sqlalchemy==2.0.25
+asyncpg==0.29.0
+alembic==1.13.1
+greenlet==3.0.3
+
+# Pydantic
+pydantic==2.5.3
+pydantic-settings==2.1.0
+email-validator==2.1.0
+
+# Auth / security
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+
+# Redis
+redis==5.0.1
+aioredis==2.0.1
+
+# Kafka
+aiokafka==0.10.0
+
+# HTTP client (inter-service)
+httpx==0.26.0
+
+# Object storage
+minio==7.2.3
+
+# Utils
+python-dotenv==1.0.0
+pytz==2024.1
+pendulum==3.0.0
+
+# Observability
+prometheus-fastapi-instrumentator==6.1.0
+opentelemetry-api==1.22.0
+opentelemetry-sdk==1.22.0
+opentelemetry-instrumentation-fastapi==0.43b0
+
+# Testing
+pytest==7.4.4
+pytest-asyncio==0.23.3
+httpx==0.26.0
+factory-boy==3.3.0
+
+# --- Service-specific (add to individual service requirements.txt) ---
+# notification-service:
+#   twilio==8.13.0
+#   aiosmtplib==3.0.1
+# payment-service:
+#   razorpay==1.4.1
+#   reportlab==4.0.9  (PDF invoice generation)
+# tracking-service:
+#   elasticsearch[async]==8.12.0

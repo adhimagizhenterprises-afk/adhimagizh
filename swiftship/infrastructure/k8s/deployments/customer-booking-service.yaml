@@ -1,0 +1,102 @@
+---
+# customer-booking-service deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: customer-booking-service
+  namespace: swiftship
+  labels:
+    app: customer-booking-service
+    version: "1.0"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: customer-booking-service
+  template:
+    metadata:
+      labels:
+        app: customer-booking-service
+    spec:
+      containers:
+        - name: customer-booking-service
+          image: swiftship/customer-booking-service:latest
+          ports:
+            - containerPort: 8001
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: swiftship-secrets
+                  key: booking-db-url
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: swiftship-secrets
+                  key: redis-url
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              valueFrom:
+                configMapKeyRef:
+                  name: swiftship-config
+                  key: kafka-brokers
+            - name: AUTH_SERVICE_URL
+              value: "http://user-auth-service:8007"
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8001
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8001
+            initialDelaySeconds: 30
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: customer-booking-service
+  namespace: swiftship
+spec:
+  selector:
+    app: customer-booking-service
+  ports:
+    - protocol: TCP
+      port: 8001
+      targetPort: 8001
+---
+# Horizontal Pod Autoscaler
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: customer-booking-service-hpa
+  namespace: swiftship
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: customer-booking-service
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80

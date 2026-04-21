@@ -1,0 +1,191 @@
+version: "3.9"
+
+services:
+  # ─── Infrastructure ───────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: swiftship
+      POSTGRES_PASSWORD: swiftship_secret
+    ports: ["5432:5432"]
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infrastructure/docker/init-dbs.sql:/docker-entrypoint-initdb.d/init.sql
+
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+    ports: ["9092:9092"]
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin123
+    ports: ["9000:9000", "9001:9001"]
+    volumes:
+      - minio_data:/data
+
+  elasticsearch:
+    image: elasticsearch:8.11.0
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+    ports: ["9200:9200"]
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+
+  # ─── API Gateway (nginx) ──────────────────────────────────────────
+  api-gateway:
+    image: nginx:alpine
+    ports: ["8000:80"]
+    volumes:
+      - ./infrastructure/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - user-auth-service
+      - customer-booking-service
+      - customer-tracking-service
+      - operations-service
+      - agent-service
+      - payment-service
+
+  # ─── Backend Microservices ────────────────────────────────────────
+  user-auth-service:
+    build:
+      context: .
+      dockerfile: ./services/user-auth-service/Dockerfile
+    ports: ["8007:8007"]
+    environment:
+      DATABASE_URL: postgresql+asyncpg://swiftship:swiftship_secret@postgres/auth_db
+      REDIS_URL: redis://redis:6379/0
+      JWT_SECRET: super_secret_jwt_key_change_in_production
+      JWT_ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 30
+      REFRESH_TOKEN_EXPIRE_DAYS: 7
+    depends_on: [postgres, redis]
+
+  customer-booking-service:
+    build:
+      context: .
+      dockerfile: ./services/customer-booking-service/Dockerfile
+    ports: ["8001:8001"]
+    environment:
+      DATABASE_URL: postgresql+asyncpg://swiftship:swiftship_secret@postgres/booking_db
+      REDIS_URL: redis://redis:6379/1
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      AUTH_SERVICE_URL: http://user-auth-service:8007
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin123
+    depends_on: [postgres, redis, kafka]
+
+  customer-tracking-service:
+    build:
+      context: .
+      dockerfile: ./services/customer-tracking-service/Dockerfile
+    ports: ["8002:8002"]
+    environment:
+      DATABASE_URL: postgresql+asyncpg://swiftship:swiftship_secret@postgres/tracking_db
+      REDIS_URL: redis://redis:6379/2
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+      AUTH_SERVICE_URL: http://user-auth-service:8007
+    depends_on: [postgres, redis, kafka, elasticsearch]
+
+  operations-service:
+    build:
+      context: .
+      dockerfile: ./services/operations-service/Dockerfile
+    ports: ["8003:8003"]
+    environment:
+      DATABASE_URL: postgresql+asyncpg://swiftship:swiftship_secret@postgres/operations_db
+      REDIS_URL: redis://redis:6379/3
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      AUTH_SERVICE_URL: http://user-auth-service:8007
+    depends_on: [postgres, redis, kafka]
+
+  agent-service:
+    build:
+      context: .
+      dockerfile: ./services/agent-service/Dockerfile
+    ports: ["8004:8004"]
+    environment:
+      DATABASE_URL: postgresql+asyncpg://swiftship:swiftship_secret@postgres/agent_db
+      REDIS_URL: redis://redis:6379/4
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      AUTH_SERVICE_URL: http://user-auth-service:8007
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin123
+    depends_on: [postgres, redis, kafka, minio]
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: ./services/notification-service/Dockerfile
+    ports: ["8005:8005"]
+    environment:
+      DATABASE_URL: postgresql+asyncpg://swiftship:swiftship_secret@postgres/notification_db
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID}
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN}
+      TWILIO_PHONE_NUMBER: ${TWILIO_PHONE_NUMBER}
+      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      FCM_SERVER_KEY: ${FCM_SERVER_KEY}
+    depends_on: [postgres, kafka]
+
+  payment-service:
+    build:
+      context: .
+      dockerfile: ./services/payment-service/Dockerfile
+    ports: ["8006:8006"]
+    environment:
+      DATABASE_URL: postgresql+asyncpg://swiftship:swiftship_secret@postgres/payment_db
+      REDIS_URL: redis://redis:6379/5
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID}
+      RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET}
+      AUTH_SERVICE_URL: http://user-auth-service:8007
+    depends_on: [postgres, redis, kafka]
+
+  # ─── Frontend Apps ────────────────────────────────────────────────
+  customer-portal:
+    build:
+      context: .
+      dockerfile: ./frontend/customer-portal/Dockerfile
+    ports: ["3000:80"]
+    environment:
+      REACT_APP_API_BASE_URL: http://localhost:8000/api/v1
+
+  ops-dashboard:
+    build:
+      context: .
+      dockerfile: ./frontend/ops-dashboard/Dockerfile
+    ports: ["3001:80"]
+    environment:
+      REACT_APP_API_BASE_URL: http://localhost:8000/api/v1
+
+volumes:
+  postgres_data:
+  kafka_data:
+  minio_data:
+  es_data:

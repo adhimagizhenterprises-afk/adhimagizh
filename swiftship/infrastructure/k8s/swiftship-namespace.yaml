@@ -1,0 +1,47 @@
+---
+# Namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: swiftship
+  labels:
+    istio-injection: enabled
+
+---
+# ConfigMap for shared config
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: swiftship-config
+  namespace: swiftship
+data:
+  kafka-brokers: "kafka-service:9092"
+  elasticsearch-url: "http://elasticsearch-service:9200"
+  minio-endpoint: "minio-service:9000"
+  redis-url: "redis://redis-service:6379"
+
+---
+# Secret template (replace base64 values with actual secrets)
+apiVersion: v1
+kind: Secret
+metadata:
+  name: swiftship-secrets
+  namespace: swiftship
+type: Opaque
+data:
+  # echo -n "your-value" | base64
+  booking-db-url: cG9zdGdyZXNxbCthc3luY3BnOi8vc3dpZnRzaGlwOnNlY3JldEBwb3N0Z3Jlcy9ib29raW5nX2Ri
+  tracking-db-url: dHJhY2tpbmctZGItdXJsLWhlcmU=
+  operations-db-url: b3BlcmF0aW9ucy1kYi11cmwtaGVyZQ==
+  agent-db-url: YWdlbnQtZGItdXJsLWhlcmU=
+  payment-db-url: cGF5bWVudC1kYi11cmwtaGVyZQ==
+  auth-db-url: YXV0aC1kYi11cmwtaGVyZQ==
+  notification-db-url: bm90aWZpY2F0aW9uLWRiLXVybC1oZXJl
+  redis-url: cmVkaXM6Ly9yZWRpcy1zZXJ2aWNlOjYzNzk=
+  jwt-secret: c3VwZXItc2VjcmV0LWp3dC1rZXktY2hhbmdlLW1lLWluLXByb2R1Y3Rpb24=
+  razorpay-key-id: eW91ci1yYXpvcnBheS1rZXktaWQ=
+  razorpay-key-secret: eW91ci1yYXpvcnBheS1zZWNyZXQ=
+  twilio-account-sid: eW91ci10d2lsaW8tc2lk
+  twilio-auth-token: eW91ci10d2lsaW8tdG9rZW4=
+  minio-access-key: bWluaW9hZG1pbg==
+  minio-secret-key: bWluaW9hZG1pbjEyMw==
